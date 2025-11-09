@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "folder-cleanup"
+version = "0.1.0"
+description = "AI-powered file organizer that intelligently renames and organizes files using local LLMs"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{include = "folder_cleanup", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+typer = {extras = ["all"], version = "^0.12.0"}
+rich = "^13.7.0"
+ollama = "^0.3.0"
+pydantic = "^2.8.0"
+pydantic-settings = "^2.4.0"
+python-magic = "^0.4.27"
+pathspec = "^0.12.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.0"
+pytest-cov = "^5.0.0"
+black = "^24.8.0"
+ruff = "^0.5.0"
+mypy = "^1.11.0"
+
+[tool.poetry.scripts]
+folder-cleanup = "folder_cleanup.cli.app:app"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
