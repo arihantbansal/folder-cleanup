@@ -186,8 +186,8 @@ def organize(
 
         console.print(f"[green]✓ Found {len(files)} files[/green]")
 
-        # Step 2: Analyze with AI
-        console.print("\n[bold]Step 2/4: Analyzing with AI...[/bold]")
+        # Step 2: Analyze with AI (Multi-Phase Intelligent Analysis)
+        console.print("\n[bold]Step 2/4: AI Analysis (Multi-Phase Strategy)...[/bold]")
 
         try:
             analyzer = FileAnalyzer(config)
@@ -201,13 +201,14 @@ def organize(
                 console.print(f"  ollama pull {config.ollama_model}")
                 raise typer.Exit(code=1)
 
-            results = analyzer.analyze_batch(files)
+            # Use INTELLIGENT multi-phase analysis
+            results = analyzer.analyze_batch_intelligent(files)
 
             if not results:
                 console.print("[red]✗ AI analysis failed[/red]")
                 raise typer.Exit(code=1)
 
-            console.print(f"[green]✓ Analyzed {len(results)} files[/green]")
+            console.print(f"\n[green]✓ Analyzed {len(results)} files with context[/green]")
 
         except OllamaClientError as e:
             console.print(f"[red]✗ Ollama error: {e}[/red]")

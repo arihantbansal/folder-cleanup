@@ -1,66 +1,111 @@
-"""Prompt templates for AI interactions."""
+"""Prompt templates for AI interactions with intelligent context-aware analysis."""
 
-RENAME_PROMPT_TEMPLATE = """You are a file organization assistant. Analyze this file and suggest a better, more descriptive filename.
+# PHASE 1: Pattern Discovery - Analyze entire collection to find patterns
+PATTERN_DISCOVERY_PROMPT = """You are an expert file organization analyst. Analyze this ENTIRE collection of files to discover organizational patterns, themes, and relationships.
 
-File Information:
-- Current name: {filename}
+FILES COLLECTION ({total_files} files):
+{file_list}
+
+TASK: Discover patterns across the ENTIRE collection:
+1. **Temporal Patterns**: Are there files from specific time periods that should be grouped?
+2. **Project/Topic Clusters**: What projects, topics, or themes emerge across files?
+3. **Semantic Groups**: Which files are semantically related based on content?
+4. **Naming Conventions**: What naming patterns exist that indicate relationships?
+5. **Folder Structure**: What logical folder hierarchy would best organize these files?
+
+THINK HOLISTICALLY - you're looking at the forest, not individual trees.
+
+Respond with JSON:
+{{
+  "patterns": [
+    {{"type": "temporal|project|topic|semantic", "description": "...", "file_indices": [0, 5, 12], "suggested_folder": "..."}},
+    ...
+  ],
+  "suggested_categories": ["category1", "category2", ...],
+  "folder_structure": {{"parent": ["sub1", "sub2"], ...}},
+  "insights": "Overall organizational strategy explanation"
+}}"""
+
+# PHASE 2: Contextual File Analysis - Analyze individual files WITH context
+CONTEXTUAL_ANALYSIS_PROMPT = """You are a file organization assistant with FULL CONTEXT of the file collection.
+
+TARGET FILE:
+- Name: {filename}
 - Extension: {extension}
 - Type: {file_type}
 - Size: {size_mb:.2f} MB
 - Modified: {modified_time}
-
 {content_section}
 
-Instructions:
-1. Suggest a clear, descriptive filename that describes the content
-2. Keep the same extension
-3. Use lowercase with underscores (snake_case) or hyphens
-4. Keep it concise (max 50 characters before extension)
-5. Remove redundant words like "document", "file", "copy", version numbers if not meaningful
-6. Include key identifiers like dates, names, topics
+COLLECTION CONTEXT:
+- Total files: {total_files}
+- Discovered patterns: {patterns}
+- Related files: {related_files}
+- Suggested folder structure: {folder_structure}
 
-Respond with ONLY a JSON object in this format:
-{{"suggested_name": "better_filename{extension}", "confidence": 0.85, "reasoning": "Brief explanation"}}"""
+INSTRUCTIONS:
+Given the ENTIRE collection context above, suggest the BEST name and location for this specific file.
+- Consider relationships to other files
+- Use consistent naming with related files
+- Place in folder hierarchy that makes sense for the WHOLE collection
+- Extract meaningful information from content
 
-ORGANIZE_PROMPT_TEMPLATE = """You are a file organization assistant. Analyze this file and suggest the best folder structure for it.
+Respond with JSON:
+{{
+  "suggested_name": "descriptive_name{extension}",
+  "folder_path": "Category/Subcategory/Specific",
+  "category": "main_category",
+  "confidence": 0.95,
+  "reasoning": "Why this placement, considering context",
+  "related_files": ["file1.ext", "file2.ext"],
+  "tags": ["tag1", "tag2"]
+}}"""
 
-File Information:
-- Current name: {filename}
-- Extension: {extension}
-- Type: {file_type}
-- Size: {size_mb:.2f} MB
-- Modified: {modified_time}
+# PHASE 3: Semantic Similarity - For clustering similar files
+SIMILARITY_PROMPT = """You are analyzing files for semantic similarity to enable intelligent clustering.
 
-{content_section}
+FILE 1:
+Name: {file1_name}
+Type: {file1_type}
+Content: {file1_content}
 
-Instructions:
-1. Suggest a logical folder path (e.g., "Documents/Work/Projects" or "Photos/2024/Vacation")
-2. Use clear category names
-3. Maximum 3 levels of nesting
-4. Use common organizational patterns (by type, date, project, category)
+FILE 2:
+Name: {file2_name}
+Type: {file2_type}
+Content: {file2_content}
 
-Respond with ONLY a JSON object in this format:
-{{"folder_path": "Category/Subcategory", "category": "main_category", "confidence": 0.9, "reasoning": "Brief explanation"}}"""
+TASK: Determine if these files are semantically related and should be grouped together.
+Consider:
+- Topic similarity
+- Temporal relationship (same event/period)
+- Project relationship (part of same work)
+- Content themes
 
-COMBINED_PROMPT_TEMPLATE = """You are a file organization assistant. Analyze this file and suggest both a better filename AND the best folder location.
+Respond with JSON:
+{{
+  "similarity_score": 0.85,
+  "are_related": true,
+  "relationship_type": "same_project|same_topic|same_event|temporal|none",
+  "reasoning": "Why these files are or aren't related",
+  "suggested_group": "GroupName"
+}}"""
 
-File Information:
-- Current name: {filename}
-- Extension: {extension}
-- Type: {file_type}
-- Size: {size_mb:.2f} MB
-- Modified: {modified_time}
+# PHASE 4: Embeddings Analysis - For files without readable content
+EMBEDDING_SUMMARY_PROMPT = """Analyze this file and create a semantic summary for embedding-based similarity.
 
-{content_section}
+File: {filename}
+Type: {file_type}
+Metadata: {metadata}
+Content: {content_preview}
 
-Instructions:
-1. Suggest a clear, descriptive filename (snake_case or hyphens, max 50 chars before extension)
-2. Suggest a logical folder path (max 3 levels, e.g., "Documents/Work/Projects")
-3. Use the same extension
-4. Categorize by content, not just file type
+Create a dense semantic summary (2-3 sentences) that captures:
+- What this file is about
+- Its purpose or context
+- Key identifying information
 
-Respond with ONLY a JSON object in this format:
-{{"suggested_name": "better_filename{extension}", "folder_path": "Category/Subcategory", "category": "main_category", "confidence": 0.85, "reasoning": "Brief explanation"}}"""
+This summary will be used for vector similarity matching.
+
+Summary:"""
 
 
 def format_content_section(content: str | None, max_length: int = 1000) -> str:
@@ -84,50 +129,46 @@ def format_content_section(content: str | None, max_length: int = 1000) -> str:
     return f"Content Preview:\n```\n{content}\n```"
 
 
-def build_rename_prompt(
-    filename: str,
-    extension: str,
-    file_type: str,
-    size_mb: float,
-    modified_time: str,
-    content: str | None = None,
-) -> str:
+def build_pattern_discovery_prompt(files: list[dict]) -> str:
     """
-    Build a prompt for file renaming.
+    Build prompt for Phase 1: Pattern discovery across entire collection.
 
     Args:
-        filename: Current filename
-        extension: File extension
-        file_type: File type category
-        size_mb: File size in MB
-        modified_time: Last modified timestamp
-        content: Optional file content preview
+        files: List of file info dicts with keys: name, type, size, modified, content_preview
 
     Returns:
-        str: Formatted prompt
+        str: Formatted pattern discovery prompt
     """
-    content_section = format_content_section(content)
+    file_list = []
+    for i, f in enumerate(files):
+        content_preview = f.get("content_preview", "")
+        if content_preview:
+            content_preview = content_preview[:200] + "..." if len(content_preview) > 200 else content_preview
 
-    return RENAME_PROMPT_TEMPLATE.format(
-        filename=filename,
-        extension=extension,
-        file_type=file_type,
-        size_mb=size_mb,
-        modified_time=modified_time,
-        content_section=content_section,
+        file_list.append(
+            f"[{i}] {f['name']} | {f['type']} | {f.get('size_mb', 0):.2f}MB | {f.get('modified', 'unknown')}"
+            + (f"\n    Content: {content_preview}" if content_preview else "")
+        )
+
+    return PATTERN_DISCOVERY_PROMPT.format(
+        total_files=len(files), file_list="\n".join(file_list)
     )
 
 
-def build_organize_prompt(
+def build_contextual_analysis_prompt(
     filename: str,
     extension: str,
     file_type: str,
     size_mb: float,
     modified_time: str,
-    content: str | None = None,
+    content: str | None,
+    total_files: int,
+    patterns: str,
+    related_files: str,
+    folder_structure: str,
 ) -> str:
     """
-    Build a prompt for file organization.
+    Build prompt for Phase 2: Contextual file analysis with collection awareness.
 
     Args:
         filename: Current filename
@@ -136,51 +177,83 @@ def build_organize_prompt(
         size_mb: File size in MB
         modified_time: Last modified timestamp
         content: Optional file content preview
+        total_files: Total number of files in collection
+        patterns: Discovered patterns from Phase 1
+        related_files: List of related files
+        folder_structure: Suggested folder hierarchy
 
     Returns:
-        str: Formatted prompt
+        str: Formatted contextual analysis prompt
     """
     content_section = format_content_section(content)
 
-    return ORGANIZE_PROMPT_TEMPLATE.format(
+    return CONTEXTUAL_ANALYSIS_PROMPT.format(
         filename=filename,
         extension=extension,
         file_type=file_type,
         size_mb=size_mb,
         modified_time=modified_time,
         content_section=content_section,
+        total_files=total_files,
+        patterns=patterns,
+        related_files=related_files,
+        folder_structure=folder_structure,
     )
 
 
-def build_combined_prompt(
-    filename: str,
-    extension: str,
-    file_type: str,
-    size_mb: float,
-    modified_time: str,
-    content: str | None = None,
+def build_similarity_prompt(
+    file1_name: str,
+    file1_type: str,
+    file1_content: str | None,
+    file2_name: str,
+    file2_type: str,
+    file2_content: str | None,
 ) -> str:
     """
-    Build a combined prompt for both renaming and organizing.
+    Build prompt for Phase 3: Semantic similarity analysis.
 
     Args:
-        filename: Current filename
-        extension: File extension
-        file_type: File type category
-        size_mb: File size in MB
-        modified_time: Last modified timestamp
-        content: Optional file content preview
+        file1_name: First file name
+        file1_type: First file type
+        file1_content: First file content
+        file2_name: Second file name
+        file2_type: Second file type
+        file2_content: Second file content
 
     Returns:
-        str: Formatted prompt
+        str: Formatted similarity prompt
     """
-    content_section = format_content_section(content)
+    content1 = file1_content[:500] if file1_content else "[No content]"
+    content2 = file2_content[:500] if file2_content else "[No content]"
 
-    return COMBINED_PROMPT_TEMPLATE.format(
+    return SIMILARITY_PROMPT.format(
+        file1_name=file1_name,
+        file1_type=file1_type,
+        file1_content=content1,
+        file2_name=file2_name,
+        file2_type=file2_type,
+        file2_content=content2,
+    )
+
+
+def build_embedding_summary_prompt(
+    filename: str, file_type: str, metadata: str, content_preview: str | None
+) -> str:
+    """
+    Build prompt for Phase 4: Creating semantic summaries for embeddings.
+
+    Args:
+        filename: File name
+        file_type: File type
+        metadata: File metadata string
+        content_preview: Content preview
+
+    Returns:
+        str: Formatted embedding summary prompt
+    """
+    return EMBEDDING_SUMMARY_PROMPT.format(
         filename=filename,
-        extension=extension,
         file_type=file_type,
-        size_mb=size_mb,
-        modified_time=modified_time,
-        content_section=content_section,
+        metadata=metadata,
+        content_preview=content_preview or "[No content available]",
     )
