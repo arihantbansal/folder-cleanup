@@ -129,6 +129,9 @@ class IntelligentFileAnalyzer:
         Returns:
             Optional[dict]: Discovered patterns or None if failed
         """
+        from rich.spinner import Spinner
+        from rich.live import Live
+
         try:
             # Convert FileInfo to dicts for prompt
             file_dicts = [
@@ -147,8 +150,14 @@ class IntelligentFileAnalyzer:
 
             logger.debug("Sending collection to AI for pattern discovery...")
 
-            # Get AI analysis of entire collection
-            response = self.client.generate_json(prompt, temperature=0.5)
+            # Show spinner during long operation
+            with Live(
+                Spinner("dots", text="[cyan]Analyzing entire collection (may take 30-60s)...[/cyan]"),
+                console=console,
+                refresh_per_second=10,
+            ):
+                # Get AI analysis of entire collection
+                response = self.client.generate_json(prompt, temperature=0.5)
 
             if response:
                 logger.info(f"✓ Discovered {len(response.get('patterns', []))} patterns")

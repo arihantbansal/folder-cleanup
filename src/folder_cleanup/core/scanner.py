@@ -162,6 +162,13 @@ class FileScanner:
                 if p.is_file() and not self.should_ignore(p, directory)
             )
 
+            # Apply file limit if configured
+            if self.config.file_limit and total_files > self.config.file_limit:
+                logger.info(f"Limiting to {self.config.file_limit} files (found {total_files})")
+                console.print(
+                    f"[yellow]ℹ  Processing first {self.config.file_limit} of {total_files} files[/yellow]"
+                )
+
             logger.info(f"Found {total_files} files to process")
 
             if show_progress and total_files > 0:
@@ -173,8 +180,13 @@ class FileScanner:
                     console=console,
                 ) as progress:
                     task = progress.add_task("[cyan]Scanning files...", total=total_files)
+                    processed = 0
 
                     for path in all_paths:
+                        # Check file limit
+                        if self.config.file_limit and processed >= self.config.file_limit:
+                            break
+
                         if not path.is_file():
                             continue
 
@@ -191,11 +203,17 @@ class FileScanner:
                         file_info = self.scan_file(path)
                         if file_info:
                             files.append(file_info)
+                            processed += 1
 
                         progress.advance(task)
             else:
                 # Scan without progress bar
+                processed = 0
                 for path in all_paths:
+                    # Check file limit
+                    if self.config.file_limit and processed >= self.config.file_limit:
+                        break
+
                     if not path.is_file():
                         continue
 
@@ -210,6 +228,7 @@ class FileScanner:
                     file_info = self.scan_file(path)
                     if file_info:
                         files.append(file_info)
+                        processed += 1
 
         except PermissionError as e:
             logger.error(f"Permission denied accessing {directory}: {e}")

@@ -146,10 +146,21 @@ class Config(BaseModel):
     allowed_extensions: Optional[list[str]] = Field(
         None, description="If set, only process these extensions"
     )
+    file_limit: Optional[int] = Field(
+        None, description="Maximum number of files to process (for testing)"
+    )
+
+    # Performance settings
+    fast_mode: bool = Field(
+        default=False, description="Skip Phase 1 pattern discovery for faster processing"
+    )
 
     # Behavior settings
     dry_run: bool = Field(default=True, description="Run in dry-run mode by default")
     create_backups: bool = Field(default=False, description="Create backups before operations")
     verbose: bool = Field(default=False, description="Enable verbose logging")
+    show_ai_insights: bool = Field(
+        default=True, description="Display AI-discovered patterns and insights"
+    )
 
     model_config = ConfigDict(env_file=".env", env_prefix="")
